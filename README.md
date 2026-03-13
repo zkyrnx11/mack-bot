@@ -3,11 +3,11 @@
   <p>A self-hosted WhatsApp bot written in Go.</p>
   <a href="https://zkyrnx11.github.io/mack-bot/"><strong>Documentation →</strong></a>
   &nbsp;·&nbsp;
-  <a href="https://github.com/zkyrnx11/mack-bot-bot/releases/latest">Latest Release</a>
+  <a href="https://github.com/zkyrnx11/mack-bot/releases/latest">Latest Release</a>
   &nbsp;·&nbsp;
-  <a href="https://github.com/zkyrnx11/mack-bot-bot/releases/tag/nightly">Nightly Build</a>
+  <a href="https://github.com/zkyrnx11/mack-bot/releases/tag/nightly">Nightly Build</a>
   &nbsp;·&nbsp;
-  <a href="https://github.com/zkyrnx11/mack-bot-bot/issues">Report a Bug</a>
+  <a href="https://github.com/zkyrnx11/mack-bot/issues">Report a Bug</a>
   <br/><br/>
   <img src="https://img.shields.io/github/v/release/zkyrnx11/mack-bot?style=flat&label=version" alt="Latest release"/>
   <img src="https://img.shields.io/badge/Docker-ready-2496ED?style=flat&logo=docker" alt="Docker"/>

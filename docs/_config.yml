@@ -7,9 +7,9 @@ color_scheme: nil
 
 aux_links:
   "GitHub":
-    - "https://github.com/zkyrnx11/mack-bot-bot"
+    - "https://github.com/zkyrnx11/mack-bot"
 
-footer_content: 'Released under the <a href="https://github.com/zkyrnx11/mack-bot-bot/blob/master/LICENSE">MIT License</a>.'
+footer_content: 'Released under the <a href="https://github.com/zkyrnx11/mack-bot/blob/master/LICENSE">MIT License</a>.'
 
 nav_sort: case_insensitive
 
