@@ -2,7 +2,7 @@ SHELL      := powershell.exe
 .SHELLFLAGS := -NoProfile -Command
 
 BINARY     := mack
-VERSION    ?= 0.0.1
+VERSION    ?= 0.0.2
 COMMIT     := $(shell git rev-parse --short HEAD 2>$$null)
 LDFLAGS    := -s -w -X main.Version=$(VERSION) -X main.Commit=$(COMMIT)
 ENTRYPOINT := .

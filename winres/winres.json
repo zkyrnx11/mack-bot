@@ -10,7 +10,7 @@
       "0409": {
         "identity": {
           "name": "Mack-Bot",
-          "version": "0.0.1.0"
+          "version": "0.0.2.0"
         },
         "description": "Mack-Bot – self-hosted WhatsApp bot",
         "minimum-os": "win10",
@@ -26,19 +26,19 @@
     "#1": {
       "0000": {
         "fixed": {
-          "file_version": "0.0.1.0",
-          "product_version": "0.0.1.0"
+          "file_version": "0.0.2.0",
+          "product_version": "0.0.2.0"
         },
         "info": {
           "0409": {
             "CompanyName":      "Mack-Bot",
             "FileDescription":  "Mack-Bot – self-hosted WhatsApp bot",
-            "FileVersion": "0.0.1.0",
+            "FileVersion": "0.0.2.0",
             "InternalName":     "mack-bot",
             "LegalCopyright":   "MIT License",
             "OriginalFilename": "mack.exe",
             "ProductName":      "Mack-Bot",
-            "ProductVersion": "0.0.1"
+            "ProductVersion": "0.0.2"
           }
         }
       }
