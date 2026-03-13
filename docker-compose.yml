@@ -3,8 +3,8 @@ services:
     build:
       context: .
       args:
-        VERSION: "0.0.1"
-    image: mack-bot:0.0.1
+        VERSION: "latest"
+    image: mack-bot:latest
     container_name: mack-bot
     restart: unless-stopped
     volumes:
