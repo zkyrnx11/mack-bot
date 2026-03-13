@@ -1,0 +1,106 @@
+package plugins
+
+import (
+	"context"
+	"strings"
+
+	"google.golang.org/protobuf/proto"
+
+	"go.mau.fi/whatsmeow"
+	"go.mau.fi/whatsmeow/appstate"
+	"go.mau.fi/whatsmeow/proto/waSyncAction"
+	"go.mau.fi/whatsmeow/types"
+)
+
+func init() {
+	Register(&Command{
+		Pattern:  "del",
+		Category: "group",
+		Func:     delCmd,
+	})
+}
+
+func isOwnJID(client *whatsmeow.Client, userPart string) bool {
+	if userPart == "" {
+		return false
+	}
+	if client.Store.ID != nil {
+		myPhone := strings.SplitN(client.Store.ID.User, ".", 2)[0]
+		if userPart == myPhone {
+			return true
+		}
+	}
+	if client.Store.LID.User != "" && userPart == client.Store.LID.User {
+		return true
+	}
+	return false
+}
+
+func delCmd(ctx *Context) error {
+	stanzaID, participant := ctx.Msg.QuotedContextInfo()
+
+	if stanzaID == "" {
+		ctx.Reply(T().DelUsage)
+		return nil
+	}
+
+	chat := ctx.Msg.Chat
+	isGroup := chat.Server == types.GroupServer
+	msgID := types.MessageID(stanzaID)
+
+	var targetSender types.JID
+	if participant != "" {
+		if parsed, err := types.ParseJID(participant); err == nil {
+			targetSender = parsed.ToNonAD()
+		}
+	}
+
+	targetIsOwn := isOwnJID(ctx.Client, targetSender.User)
+
+	if targetIsOwn {
+
+		ctx.Client.SendMessage(context.Background(), chat,
+			ctx.Client.BuildRevoke(chat, types.EmptyJID, msgID))
+		return nil
+	}
+
+	if isGroup {
+		botAdmin := false
+		if gi, err := ctx.Client.GetGroupInfo(context.Background(), chat); err == nil {
+			botAdmin = botIsAdmin(gi.Participants, ownerPhone, ctx.Client.Store.ID.ToNonAD().User)
+		}
+		if botAdmin {
+
+			ctx.Client.SendMessage(context.Background(), chat,
+				ctx.Client.BuildRevoke(chat, targetSender, msgID))
+		} else {
+
+			deleteForMe(ctx, chat, msgID, targetIsOwn, 0)
+		}
+	} else {
+
+		deleteForMe(ctx, chat, msgID, false, 0)
+	}
+	return nil
+}
+
+func deleteForMe(ctx *Context, chatJID types.JID, msgID types.MessageID, fromMe bool, timestampUnix int64) {
+	fromMeStr := "0"
+	if fromMe {
+		fromMeStr = "1"
+	}
+	patch := appstate.PatchInfo{
+		Type: appstate.WAPatchRegularHigh,
+		Mutations: []appstate.MutationInfo{{
+			Index:   []string{"deleteMessageForMe", chatJID.String(), string(msgID), fromMeStr, "0"},
+			Version: 3,
+			Value: &waSyncAction.SyncActionValue{
+				DeleteMessageForMeAction: &waSyncAction.DeleteMessageForMeAction{
+					DeleteMedia:      proto.Bool(false),
+					MessageTimestamp: proto.Int64(timestampUnix),
+				},
+			},
+		}},
+	}
+	ctx.Client.SendAppState(context.Background(), patch)
+}

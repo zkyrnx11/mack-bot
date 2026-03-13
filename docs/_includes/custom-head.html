@@ -1,0 +1,10 @@
+<script>
+  const toggleDarkMode = document.querySelector(".js-toggle-dark-mode");
+  const jtdThemeDialog = document.querySelector(".js-theme-dialog");
+  if (toggleDarkMode) {
+    toggleDarkMode.addEventListener("click", function (e) {
+      e.preventDefault();
+      jtd.setTheme(jtd.getTheme() === "dark" ? "light" : "dark");
+    });
+  }
+</script>

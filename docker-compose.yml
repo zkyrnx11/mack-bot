@@ -1,0 +1,13 @@
+services:
+  mack-bot:
+    build:
+      context: .
+      args:
+        VERSION: "0.0.1"   # update this when releasing a new version
+    image: mack-bot:0.0.1
+    container_name: mack-bot
+    restart: unless-stopped
+    volumes:
+      - ./data:/root/Documents/Mack-Bot
+    stdin_open: true
+    tty: true

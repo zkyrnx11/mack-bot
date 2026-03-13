@@ -1,0 +1,1 @@
+-- v12 -> v13 (compatible with v12+): Compat stub for existing databases

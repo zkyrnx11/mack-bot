@@ -1,0 +1,82 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v[0-9]*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build & Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Install go-winres
+        run: go install github.com/tc-hib/go-winres@latest
+
+      - name: Extract version
+        id: version
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Stamp version into winres.json & regenerate .syso
+        env:
+          VERSION: ${{ steps.version.outputs.VERSION }}
+        run: |
+          jq --arg v "$VERSION" '
+            .RT_VERSION."#1"."0000".fixed.file_version        = ($v + ".0") |
+            .RT_VERSION."#1"."0000".fixed.product_version     = ($v + ".0") |
+            .RT_VERSION."#1"."0000".info."0409".FileVersion   = ($v + ".0") |
+            .RT_VERSION."#1"."0000".info."0409".ProductVersion = $v
+          ' winres/winres.json > winres/winres.json.tmp
+          mv winres/winres.json.tmp winres/winres.json
+          go-winres make --product-version "${VERSION}.0" --file-version "${VERSION}.0"
+
+      - name: Build release binaries
+        env:
+          VERSION: ${{ steps.version.outputs.VERSION }}
+        run: |
+          COMMIT=$(git rev-parse --short HEAD)
+          BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          LDFLAGS="-s -w -X main.Version=${VERSION} -X main.Commit=${COMMIT} -X main.BuildDate=${BUILD_DATE}"
+
+          mkdir -p dist
+
+          build() {
+            local GOOS=$1 GOARCH=$2 EXT=$3
+            local BIN="dist/mack${EXT}"
+            local BASE="mack_${VERSION}_${GOOS}_${GOARCH}"
+            echo -n "  ${GOOS}/${GOARCH} ... "
+            GOOS=$GOOS GOARCH=$GOARCH go build -ldflags "$LDFLAGS" -trimpath -o "$BIN" ./
+            if [ "$GOOS" = "windows" ]; then
+              zip -j "dist/${BASE}.zip" "$BIN"
+            else
+              tar -czf "dist/${BASE}.tar.gz" -C dist mack
+            fi
+            rm "$BIN"
+            echo "done"
+          }
+
+          build linux   amd64 ""
+          build linux   arm64 ""
+          build windows amd64 ".exe"
+          build darwin  amd64 ""
+          build darwin  arm64 ""
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true
+          fail_on_unmatched_files: true
