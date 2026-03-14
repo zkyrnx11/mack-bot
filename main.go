@@ -190,6 +190,7 @@ func main() {
 	<-c
 
 	client.Disconnect()
+	time.Sleep(800 * time.Millisecond)
 }
 
 func candidateSourceDirs() []string {

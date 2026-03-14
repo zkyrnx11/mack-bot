@@ -6,6 +6,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"os/exec"
 	"strings"
 )
@@ -36,4 +38,19 @@ func run(dst any, args ...string) error {
 		return fmt.Errorf("scraper parse: %w\noutput: %s", err, stdout.String())
 	}
 	return nil
+}
+
+// FetchMediaHTTP performs an HTTP GET request to download a file into bytes.
+func FetchMediaHTTP(urlStr string) ([]byte, error) {
+	resp, err := http.Get(urlStr)
+	if err != nil {
+		return nil, fmt.Errorf("http get: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("bad status: %s", resp.Status)
+	}
+
+	return io.ReadAll(resp.Body)
 }

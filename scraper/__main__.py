@@ -69,8 +69,9 @@ def cmd_spotify(args):
 def cmd_instagram(args):
     from . import instagram
     try:
+        url = getattr(args, "url", "").strip("'\" ")
         if args.instagram_cmd == "download":
-            _out(instagram.download(args.url))
+            _out(instagram.download(url))
         elif args.instagram_cmd == "stories":
             _out(instagram.stories(args.username))
         else:
@@ -84,8 +85,9 @@ def cmd_instagram(args):
 def cmd_twitter(args):
     from . import twitter
     try:
+        url = getattr(args, "url", "").strip("'\" ")
         if args.twitter_cmd == "download":
-            _out(twitter.download(args.url))
+            _out(twitter.download(url))
         else:
             _err(f"Unknown twitter subcommand: {args.twitter_cmd}")
     except Exception as e:
@@ -97,8 +99,9 @@ def cmd_twitter(args):
 def cmd_reddit(args):
     from . import reddit
     try:
+        url = getattr(args, "url", "").strip("'\" ")
         if args.reddit_cmd == "download":
-            _out(reddit.download(args.url))
+            _out(reddit.download(url))
         else:
             _err(f"Unknown reddit subcommand: {args.reddit_cmd}")
     except Exception as e:

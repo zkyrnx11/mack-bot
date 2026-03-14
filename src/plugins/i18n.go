@@ -199,6 +199,7 @@ type Strings struct {
 
 	MediaNoReply    string
 	MediaProcessing string
+	LoaderProcessing string
 	MediaFailed     string
 	TrimUsage       string
 
@@ -422,6 +423,7 @@ var translations = map[string]*Strings{
 		ReportFailed:            "Failed to send report: %s",
 		MediaNoReply:            "Reply to an audio or video message.",
 		MediaProcessing:         "⏳ Processing...",
+		LoaderProcessing:       "[%s] Please wait, processing request...",
 		MediaFailed:             "Media processing failed: %s",
 		TrimUsage:               "Usage: .trim <start> [end]\nExample: .trim 0:10 1:30",
 		AnticallUsage:           "Usage: .anticall on|off|set <code>|mode block|warn\non — enable anticall\noff — disable anticall\nset <code> — toggle a country calling code (toggle: run again to remove)\nmode block|warn — set action mode",
@@ -597,6 +599,7 @@ var translations = map[string]*Strings{
 		ReportFailed:            "Error al enviar el reporte: %s",
 		MediaNoReply:            "Responde a un mensaje de audio o vídeo.",
 		MediaProcessing:         "⏳ Procesando...",
+		LoaderProcessing:       "[%s] Por favor espera, procesando solicitud...",
 		MediaFailed:             "Error al procesar el medio: %s",
 		TrimUsage:               "Uso: .trim <inicio> [fin]\nEjemplo: .trim 0:10 1:30",
 		AnticallUsage:           "Uso: .anticall on|off|set <codigo>|mode block|warn",
@@ -772,6 +775,7 @@ var translations = map[string]*Strings{
 		ReportFailed:            "Falha ao enviar denúncia: %s",
 		MediaNoReply:            "Responda a uma mensagem de áudio ou vídeo.",
 		MediaProcessing:         "⏳ Processando...",
+		LoaderProcessing:       "[%s] Por favor, aguarde, processando solicitação...",
 		MediaFailed:             "Falha ao processar mídia: %s",
 		TrimUsage:               "Uso: .trim <início> [fim]\nExemplo: .trim 0:10 1:30",
 		AnticallUsage:           "Uso: .anticall on|off|set <codigo>|mode block|warn",
@@ -947,6 +951,7 @@ var translations = map[string]*Strings{
 		ReportFailed:            "فشل إرسال البلاغ: %s",
 		MediaNoReply:            "ردّ على رسالة صوتية أو مرئية.",
 		MediaProcessing:         "⏳ جارٍ المعالجة...",
+		LoaderProcessing:       "[%s] أرجو الإنتظار، يتم معالجة الطلب...",
 		MediaFailed:             "فشلت معالجة الوسائط: %s",
 		TrimUsage:               "الاستخدام: .trim <بداية> [نهاية]\nمثال: .trim 0:10 1:30",
 		AnticallUsage:           "الاستخدام: .anticall on|off|set <رمز>|mode block|warn",
@@ -1122,6 +1127,7 @@ var translations = map[string]*Strings{
 		ReportFailed:            "रिपोर्ट भेजने में विफल: %s",
 		MediaNoReply:            "किसी ऑडियो या वीडियो संदेश का जवाब दें।",
 		MediaProcessing:         "⏳ प्रसंस्करण हो रहा है...",
+		LoaderProcessing:       "[%s] कृपया प्रतीक्षा करें, अनुरोध संसाधित किया जा रहा है...",
 		MediaFailed:             "मीडिया प्रसंस्करण विफल: %s",
 		TrimUsage:               "उपयोग: .trim <शुरुआत> [अंत]\nउदाहरण: .trim 0:10 1:30",
 		AnticallUsage:           "उपयोग: .anticall on|off|set <कोड>|mode block|warn",
@@ -1297,6 +1303,7 @@ var translations = map[string]*Strings{
 		ReportFailed:            "Échec du signalement : %s",
 		MediaNoReply:            "Répondez à un message audio ou vidéo.",
 		MediaProcessing:         "⏳ Traitement en cours...",
+		LoaderProcessing:       "[%s] Veuillez patienter, traitement de la requête...",
 		MediaFailed:             "Échec du traitement média : %s",
 		TrimUsage:               "Utilisation : .trim <début> [fin]\nExemple : .trim 0:10 1:30",
 		AnticallUsage:           "Utilisation : .anticall on|off|set <indicatif>|mode block|warn",
@@ -1472,6 +1479,7 @@ var translations = map[string]*Strings{
 		ReportFailed:            "Meldung fehlgeschlagen: %s",
 		MediaNoReply:            "Antworte auf eine Audio- oder Videonachricht.",
 		MediaProcessing:         "⏳ Verarbeitung läuft...",
+		LoaderProcessing:       "[%s] Bitte warten, Anfrage wird verarbeitet...",
 		MediaFailed:             "Medienverarbeitung fehlgeschlagen: %s",
 		TrimUsage:               "Verwendung: .trim <Start> [Ende]\nBeispiel: .trim 0:10 1:30",
 		AnticallUsage:           "Verwendung: .anticall on|off|set <Vorwahl>|mode block|warn",
@@ -1647,6 +1655,7 @@ var translations = map[string]*Strings{
 		ReportFailed:            "Не удалось отправить жалобу: %s",
 		MediaNoReply:            "Ответьте на аудио- или видеосообщение.",
 		MediaProcessing:         "⏳ Обработка...",
+		LoaderProcessing:       "[%s] Пожалуйста, подождите, запрос обрабатывается...",
 		MediaFailed:             "Ошибка обработки медиа: %s",
 		TrimUsage:               "Использование: .trim <начало> [конец]\nПример: .trim 0:10 1:30",
 		AnticallUsage:           "Использование: .anticall on|off|set <код>|mode block|warn",
@@ -1822,6 +1831,7 @@ var translations = map[string]*Strings{
 		ReportFailed:            "Rapor gonderilemedi: %s",
 		MediaNoReply:            "Bir ses veya video mesajina yanit verin.",
 		MediaProcessing:         "⏳ Isleniyor...",
+		LoaderProcessing:       "[%s] Lütfen bekleyin, istek işleniyor...",
 		MediaFailed:             "Medya isleme basarisiz: %s",
 		TrimUsage:               "Kullanim: .trim <baslangic> [bitis]\nOrnek: .trim 0:10 1:30",
 		AnticallUsage:           "Kullanim: .anticall on|off|set <kod>|mode block|warn",
@@ -1997,6 +2007,7 @@ var translations = map[string]*Strings{
 		ReportFailed:            "Imeshindwa kupeleka ripoti: %s",
 		MediaNoReply:            "Jibu ujumbe wa sauti au video.",
 		MediaProcessing:         "⏳ Inashughulikiwa...",
+		LoaderProcessing:       "[%s] Tafadhali subiri, ombi linashughulikiwa...",
 		MediaFailed:             "Kushughulikia midia kumeshindwa: %s",
 		TrimUsage:               "Matumizi: .trim <mwanzo> [mwisho]\nMfano: .trim 0:10 1:30",
 		AnticallUsage:           "Matumizi: .anticall on|off|set <nambari>|mode block|warn",

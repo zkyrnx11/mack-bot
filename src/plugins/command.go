@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"go.mau.fi/whatsmeow"
@@ -64,6 +65,45 @@ func (c *Context) QueueEdit(originalID types.MessageID, newText string) {
 		}),
 		id:       c.Client.GenerateMessageID(),
 		queuedAt: time.Now(),
+	}
+}
+
+// InteractiveSessions stores callbacks for message replies. Key is the StanzaID.
+var InteractiveSessions sync.Map
+
+// SendLoader sends a loading message and updates it continuously until the returned stop function is called.
+func (c *Context) SendLoader() (string, func(string)) {
+	resp, err := c.ReplySync(fmt.Sprintf(T().LoaderProcessing, "⠋"))
+	if err != nil {
+		return "", func(string) {}
+	}
+	id := resp.ID
+	stopCh := make(chan string, 1)
+
+	go func() {
+		ticker := time.NewTicker(800 * time.Millisecond)
+		defer ticker.Stop()
+		frames := []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
+		i := 0
+		for {
+			select {
+			case finalMsg := <-stopCh:
+				if finalMsg != "" {
+					c.QueueEdit(id, finalMsg)
+				} else {
+					c.QueueEdit(id, "✅")
+				}
+				return
+			case <-ticker.C:
+				i = (i + 1) % len(frames)
+				msg := fmt.Sprintf(T().LoaderProcessing, frames[i])
+				c.QueueEdit(id, msg)
+			}
+		}
+	}()
+
+	return id, func(final string) {
+		stopCh <- final
 	}
 }
 
@@ -270,6 +310,23 @@ func Dispatch(client *whatsmeow.Client, evt *events.Message) {
 
 	if chatServer == types.BroadcastServer || chatServer == types.NewsletterServer {
 		return
+	}
+
+	if q := msg.Quoted(); q != nil {
+		if handlerAny, ok := InteractiveSessions.Load(q.StanzaID); ok {
+			handler := handlerAny.(func(*Context))
+			ctx := &Context{
+				Client:     client,
+				Msg:        msg,
+				Args:       strings.Fields(msg.Text),
+				Text:       msg.Text,
+				Prefix:     "",
+				Matched:    "",
+				ReceivedAt: receivedAt,
+			}
+			handler(ctx)
+			return
+		}
 	}
 
 	if msg.IsGroup && BotSettings.IsGCDisabled() {
