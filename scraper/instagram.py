@@ -65,7 +65,10 @@ def stories(username: str) -> dict:
         "username": username,
         "count": len(story_list),
         "media": [
-            s.get("downloadUrl")
+            {
+                "url": s.get("downloadUrl"),
+                "type": "video" if s.get("type") == "video" else "photo"
+            }
             for s in story_list
             if isinstance(s, dict) and s.get("downloadUrl")
         ],

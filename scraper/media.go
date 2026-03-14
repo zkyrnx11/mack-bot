@@ -19,7 +19,7 @@ type MediaResult struct {
 type InstagramStories struct {
 	Username string   `json:"username"`
 	Count    int      `json:"count"`
-	Media    []string `json:"media"`
+	Media    []MediaItem `json:"media"`
 }
 
 // InstagramStoriesGet returns story media URLs for a given Instagram username.

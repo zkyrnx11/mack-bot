@@ -37,8 +37,14 @@ func YouTubeSearch(query string, limit int) ([]SearchResult, error) {
 	return results, run(&results, "ytdl", "search", query, "--limit", fmt.Sprintf("%d", limit))
 }
 
-// YouTubeSearchDownload searches YouTube and returns the first result's download URL.
-func YouTubeSearchDownload(query string) (*VideoResult, error) {
+// YouTubeVideoSearchDownload searches YouTube and returns the first result's video download URL.
+func YouTubeVideoSearchDownload(query string) (*VideoResult, error) {
 	var result VideoResult
-	return &result, run(&result, "ytdl", "search-download", query)
+	return &result, run(&result, "ytdl", "search-download", query, "--format", "video")
+}
+
+// YouTubeAudioSearchDownload searches YouTube and returns the first result's audio download URL.
+func YouTubeAudioSearchDownload(query string) (*VideoResult, error) {
+	var result VideoResult
+	return &result, run(&result, "ytdl", "search-download", query, "--format", "audio")
 }

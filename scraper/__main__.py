@@ -39,7 +39,7 @@ def cmd_ytdl(args):
         elif args.ytdl_cmd == "search":
             _out(ytdl.search(args.query, limit=args.limit))
         elif args.ytdl_cmd == "search-download":
-            _out(ytdl.search_and_download(args.query))
+            _out(ytdl.search_and_download(args.query, format_type=args.format))
         else:
             _err(f"Unknown ytdl subcommand: {args.ytdl_cmd}")
     except Exception as e:
@@ -110,6 +110,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     yt_sad = ytdl_sub.add_parser("search-download", help="Search and return first result URL")
     yt_sad.add_argument("query")
+    yt_sad.add_argument("--format", default="video", choices=["video", "audio"])
 
     # spotify
     spotify_p = sub.add_parser("spotify", help="Spotify commands")

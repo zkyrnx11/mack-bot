@@ -96,8 +96,8 @@ def download_audio(url: str) -> dict:
         _cleanup(ydl_opts)
 
 
-def search_and_download(query: str) -> dict:
-    ydl_opts = asyncio.run(_get_ytdl_options("video"))
+def search_and_download(query: str, format_type: str = "video") -> dict:
+    ydl_opts = asyncio.run(_get_ytdl_options(format_type))
     try:
         with yt_dlp.YoutubeDL(cast(Any, ydl_opts)) as ydl:
             results = cast(

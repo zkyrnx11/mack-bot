@@ -2,6 +2,7 @@ package plugins
 
 import (
 	"fmt"
+	"net/http"
 	"strconv"
 	"strings"
 
@@ -47,7 +48,13 @@ func ytVideoCmd(ctx *Context) error {
 		return nil
 	}
 	_, stop := ctx.SendLoader()
-	info, err := scraper.YouTubeVideo(ctx.Text)
+	var info *scraper.VideoResult
+	var err error
+	if strings.Contains(ctx.Text, "://") {
+		info, err = scraper.YouTubeVideo(ctx.Text)
+	} else {
+		info, err = scraper.YouTubeVideoSearchDownload(ctx.Text)
+	}
 	if err != nil {
 		stop(fmt.Sprintf("❌ Error: %v", err))
 		return fmt.Errorf("yt video: %w", err)
@@ -75,7 +82,13 @@ func ytAudioCmd(ctx *Context) error {
 		return nil
 	}
 	_, stop := ctx.SendLoader()
-	info, err := scraper.YouTubeAudio(ctx.Text)
+	var info *scraper.VideoResult
+	var err error
+	if strings.Contains(ctx.Text, "://") {
+		info, err = scraper.YouTubeAudio(ctx.Text)
+	} else {
+		info, err = scraper.YouTubeAudioSearchDownload(ctx.Text)
+	}
 	if err != nil {
 		stop(fmt.Sprintf("❌ Error: %v", err))
 		return fmt.Errorf("yt audio: %w", err)
@@ -222,15 +235,21 @@ func igstoriesCmd(ctx *Context) error {
 	}
 
 	validMedia := false
-	for _, u := range result.Media {
-		mediaBytes, err := scraper.FetchMediaHTTP(u)
+	for _, m := range result.Media {
+		mediaBytes, err := scraper.FetchMediaHTTP(m.URL)
 		if err != nil {
 			continue
 		}
-		if err := ctx.SendVideo(mediaBytes, "video/mp4", ""); err == nil {
-			validMedia = true
-		} else if err := ctx.SendImage(mediaBytes, "image/jpeg", ""); err == nil {
-			validMedia = true
+
+		mime := http.DetectContentType(mediaBytes)
+		if strings.HasPrefix(mime, "video/") {
+			if err := ctx.SendVideo(mediaBytes, mime, ""); err == nil {
+				validMedia = true
+			}
+		} else if strings.HasPrefix(mime, "image/") {
+			if err := ctx.SendImage(mediaBytes, mime, ""); err == nil {
+				validMedia = true
+			}
 		}
 	}
 	if !validMedia && result.Count > 0 {
