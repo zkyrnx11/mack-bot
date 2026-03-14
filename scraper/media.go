@@ -13,25 +13,6 @@ type MediaResult struct {
 	Title  string      `json:"title"`
 	Author string      `json:"author"`
 	Media  []MediaItem `json:"media"`
-	URLs   []string    `json:"urls"` // used by Instagram download
-}
-
-// TwitterDownload returns video/media URLs for a Twitter/X post.
-func TwitterDownload(url string) (*MediaResult, error) {
-	var result MediaResult
-	return &result, run(&result, "twitter", "download", url)
-}
-
-// RedditDownload returns video/media URLs for a Reddit post.
-func RedditDownload(url string) (*MediaResult, error) {
-	var result MediaResult
-	return &result, run(&result, "reddit", "download", url)
-}
-
-// InstagramDownload returns media URLs for an Instagram post.
-func InstagramDownload(url string) (*MediaResult, error) {
-	var result MediaResult
-	return &result, run(&result, "instagram", "download", url)
 }
 
 // InstagramStories holds story media download URLs.

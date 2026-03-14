@@ -34,22 +34,10 @@ func init() {
 		Func:     spotifyCmd,
 	})
 	Register(&Command{
-		Pattern:  "tweet",
-		Aliases:  []string{"tw"},
+		Pattern:  "igstories",
+		Aliases:  []string{"stories", "igstory"},
 		Category: "media",
-		Func:     tweetCmd,
-	})
-	Register(&Command{
-		Pattern:  "reddit",
-		Aliases:  []string{"rd"},
-		Category: "media",
-		Func:     redditCmd,
-	})
-	Register(&Command{
-		Pattern:  "instagram",
-		Aliases:  []string{"ig"},
-		Category: "media",
-		Func:     instagramCmd,
+		Func:     igstoriesCmd,
 	})
 }
 
@@ -221,118 +209,37 @@ func spotifyCmd(ctx *Context) error {
 	return nil
 }
 
-func tweetCmd(ctx *Context) error {
+func igstoriesCmd(ctx *Context) error {
 	if ctx.Text == "" {
-		ctx.Reply("Usage: .tweet <url>")
+		ctx.Reply("Usage: .igstories <username>")
 		return nil
 	}
 	_, stop := ctx.SendLoader()
-	result, err := scraper.TwitterDownload(ctx.Text)
+	result, err := scraper.InstagramStoriesGet(ctx.Text)
 	if err != nil {
 		stop(fmt.Sprintf("❌ Error: %v", err))
-		return fmt.Errorf("twitter: %w", err)
+		return fmt.Errorf("instagram stories: %w", err)
 	}
-	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("🐦 *%s* by *%s*\n\n", result.Title, result.Author))
-	
-	validMedia := false
-	for _, m := range result.Media {
-		mediaBytes, err := scraper.FetchMediaHTTP(m.URL)
-		if err != nil {
-			sb.WriteString(fmt.Sprintf("❌ Failed to fetch %s: %v\n", m.Type, err))
-			continue
-		}
-		if m.Type == "video" || m.Type == "gif" {
-			if err := ctx.SendVideo(mediaBytes, "video/mp4", ""); err == nil {
-				validMedia = true
-			}
-		} else if m.Type == "photo" {
-			if err := ctx.SendImage(mediaBytes, "image/jpeg", ""); err == nil {
-				validMedia = true
-			}
-		}
-	}
-	if !validMedia {
-		stop("❌ Failed to send any media.")
-		return nil
-	}
-	stop(strings.TrimSpace(sb.String()))
-	return nil
-}
-
-func redditCmd(ctx *Context) error {
-	if ctx.Text == "" {
-		ctx.Reply("Usage: .reddit <url>")
-		return nil
-	}
-	_, stop := ctx.SendLoader()
-	result, err := scraper.RedditDownload(ctx.Text)
-	if err != nil {
-		stop(fmt.Sprintf("❌ Error: %v", err))
-		return fmt.Errorf("reddit: %w", err)
-	}
-	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("👾 *%s* by *%s*\n\n", result.Title, result.Author))
 
 	validMedia := false
-	for _, m := range result.Media {
-		mediaBytes, err := scraper.FetchMediaHTTP(m.URL)
-		if err != nil {
-			sb.WriteString(fmt.Sprintf("❌ Failed to fetch %s: %v\n", m.Type, err))
-			continue
-		}
-		if m.Type == "video" || m.Type == "gif" {
-			if err := ctx.SendVideo(mediaBytes, "video/mp4", ""); err == nil {
-				validMedia = true
-			}
-		} else if m.Type == "photo" {
-			if err := ctx.SendImage(mediaBytes, "image/jpeg", ""); err == nil {
-				validMedia = true
-			}
-		}
-	}
-	if !validMedia && len(result.Media) > 0 {
-		stop("❌ Failed to send any media.")
-		return nil
-	}
-	stop(strings.TrimSpace(sb.String()))
-	return nil
-}
-
-func instagramCmd(ctx *Context) error {
-	if ctx.Text == "" {
-		ctx.Reply("Usage: .instagram <url>")
-		return nil
-	}
-	_, stop := ctx.SendLoader()
-	result, err := scraper.InstagramDownload(ctx.Text)
-	if err != nil {
-		stop(fmt.Sprintf("❌ Error: %v", err))
-		return fmt.Errorf("instagram: %w", err)
-	}
-	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("📸 *%s* by *%s*\n\n", result.Title, result.Author))
-	
-	validMedia := false
-	for _, u := range result.URLs {
+	for _, u := range result.Media {
 		mediaBytes, err := scraper.FetchMediaHTTP(u)
 		if err != nil {
-			// fallback URL
-			sb.WriteString(fmt.Sprintf("❌ Failed to fetch media: %v\n", err))
 			continue
 		}
-		// Instagram doesn't cleanly separate images/videos without probing headers headers,
-		// but whatsapp allows trying to auto-detect if we pass it correctly or try a fallback:
 		if err := ctx.SendVideo(mediaBytes, "video/mp4", ""); err == nil {
 			validMedia = true
 		} else if err := ctx.SendImage(mediaBytes, "image/jpeg", ""); err == nil {
 			validMedia = true
 		}
 	}
-	if !validMedia && len(result.URLs) > 0 {
+	if !validMedia && result.Count > 0 {
 		stop("❌ Failed to send any media.")
 		return nil
+	} else if result.Count == 0 {
+		stop("❌ No stories found.")
+		return nil
 	}
-	stop(strings.TrimSpace(sb.String()))
+	stop(fmt.Sprintf("📸 *%d* stories found for *%s*", result.Count, result.Username))
 	return nil
 }

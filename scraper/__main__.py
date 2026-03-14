@@ -8,10 +8,7 @@ Usage:
   python -m scraper ytdl search-download <query>
   python -m scraper spotify search <url>
   python -m scraper spotify download <url>
-  python -m scraper instagram download <url>
   python -m scraper instagram stories <username>
-  python -m scraper twitter download <url>
-  python -m scraper reddit download <url>
   python -m scraper cookies <url> [--netscape]
 """
 
@@ -69,41 +66,10 @@ def cmd_spotify(args):
 def cmd_instagram(args):
     from . import instagram
     try:
-        url = getattr(args, "url", "").strip("'\" ")
-        if args.instagram_cmd == "download":
-            _out(instagram.download(url))
-        elif args.instagram_cmd == "stories":
+        if args.instagram_cmd == "stories":
             _out(instagram.stories(args.username))
         else:
             _err(f"Unknown instagram subcommand: {args.instagram_cmd}")
-    except Exception as e:
-        _err(e)
-
-
-# ── twitter ───────────────────────────────────────────────────────────────────
-
-def cmd_twitter(args):
-    from . import twitter
-    try:
-        url = getattr(args, "url", "").strip("'\" ")
-        if args.twitter_cmd == "download":
-            _out(twitter.download(url))
-        else:
-            _err(f"Unknown twitter subcommand: {args.twitter_cmd}")
-    except Exception as e:
-        _err(e)
-
-
-# ── reddit ────────────────────────────────────────────────────────────────────
-
-def cmd_reddit(args):
-    from . import reddit
-    try:
-        url = getattr(args, "url", "").strip("'\" ")
-        if args.reddit_cmd == "download":
-            _out(reddit.download(url))
-        else:
-            _err(f"Unknown reddit subcommand: {args.reddit_cmd}")
     except Exception as e:
         _err(e)
 
@@ -159,25 +125,8 @@ def build_parser() -> argparse.ArgumentParser:
     ig_p = sub.add_parser("instagram", help="Instagram commands")
     ig_sub = ig_p.add_subparsers(dest="instagram_cmd", required=True)
 
-    ig_dl = ig_sub.add_parser("download", help="Download Instagram post media")
-    ig_dl.add_argument("url")
-
     ig_stories = ig_sub.add_parser("stories", help="Download Instagram stories")
     ig_stories.add_argument("username")
-
-    # twitter
-    tw_p = sub.add_parser("twitter", help="Twitter/X commands")
-    tw_sub = tw_p.add_subparsers(dest="twitter_cmd", required=True)
-
-    tw_dl = tw_sub.add_parser("download", help="Download Twitter/X video")
-    tw_dl.add_argument("url")
-
-    # reddit
-    rd_p = sub.add_parser("reddit", help="Reddit commands")
-    rd_sub = rd_p.add_subparsers(dest="reddit_cmd", required=True)
-
-    rd_dl = rd_sub.add_parser("download", help="Download Reddit video")
-    rd_dl.add_argument("url")
 
     # cookies
     ck_p = sub.add_parser("cookies", help="Fetch cookies from a URL via headless browser")
@@ -195,8 +144,6 @@ def main():
         "ytdl": cmd_ytdl,
         "spotify": cmd_spotify,
         "instagram": cmd_instagram,
-        "twitter": cmd_twitter,
-        "reddit": cmd_reddit,
         "cookies": cmd_cookies,
     }
     dispatch[args.cmd](args)
