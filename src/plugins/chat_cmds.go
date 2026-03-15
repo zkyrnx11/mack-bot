@@ -85,7 +85,7 @@ func pinToggle(ctx *Context, pin bool) error {
 
 		isFromMe := isOwnJID(ctx.Client, senderJID.User)
 		key := &waCommon.MessageKey{
-			RemoteJID: proto.String(chat.String()),
+			RemoteJID: proto.String(chat.ToNonAD().String()),
 			FromMe:    proto.Bool(isFromMe),
 			ID:        proto.String(msgID),
 		}

@@ -1,163 +1,111 @@
 package plugins
 
 import (
-	"bytes"
 	"context"
 	"fmt"
+	"reflect"
+	"unsafe"
 
-	"go.mau.fi/libsignal/groups"
-	"go.mau.fi/libsignal/protocol"
-	"go.mau.fi/libsignal/session"
-	"go.mau.fi/util/random"
 	"go.mau.fi/whatsmeow"
 	waBinary "go.mau.fi/whatsmeow/binary"
 	"go.mau.fi/whatsmeow/proto/waE2E"
-	"go.mau.fi/whatsmeow/store"
 	"go.mau.fi/whatsmeow/types"
 	"google.golang.org/protobuf/proto"
 )
 
-func sendPinMessage(ctx context.Context, cli *whatsmeow.Client, to types.JID, msg *waE2E.Message) error {
-	id := cli.GenerateMessageID()
+//go:linkname encryptMessageForDevices go.mau.fi/whatsmeow.(*Client).encryptMessageForDevices
+func encryptMessageForDevices(cli *whatsmeow.Client, ctx context.Context, allDevices []types.JID, id string, msgPlaintext, dsmPlaintext []byte, extraAttrs waBinary.Attrs) ([]waBinary.Node, bool, error)
 
+//go:linkname makeDeviceIdentityNode go.mau.fi/whatsmeow.(*Client).makeDeviceIdentityNode
+func makeDeviceIdentityNode(cli *whatsmeow.Client) waBinary.Node
+
+func sendPinMessage(ctx context.Context, cli *whatsmeow.Client, to types.JID, msg *waE2E.Message) error {
+	// 1. Prepare plaintext (replicated from whatsmeow/send.go marshalMessage)
 	plaintext, err := proto.Marshal(msg)
 	if err != nil {
-		return fmt.Errorf("marshal message: %w", err)
+		return fmt.Errorf("failed to marshal message: %w", err)
 	}
 
-	dsmPlaintext, err := proto.Marshal(&waE2E.Message{
-		DeviceSentMessage: &waE2E.DeviceSentMessage{
-			DestinationJID: proto.String(to.String()),
-			Message:        msg,
-		},
-	})
-	if err != nil {
-		return fmt.Errorf("marshal dsm: %w", err)
-	}
-
-	internals := cli.DangerousInternals()
-	ownJID := internals.GetOwnID()
-	ownLID := internals.GetOwnLID()
-	pbSer := store.SignalProtobufSerializer
-
-	perDevicePlaintext := plaintext
-	var groupEncNode *waBinary.Node
-	var participantJIDs []types.JID
-
-	if to.Server == types.GroupServer {
-		senderJID := ownLID
-		if senderJID.IsEmpty() {
-			senderJID = *cli.Store.ID
-		}
-		senderKeyName := protocol.NewSenderKeyName(to.String(), senderJID.SignalAddress())
-		groupBuilder := groups.NewGroupSessionBuilder(cli.Store, pbSer)
-		skdMsg, err := groupBuilder.Create(ctx, senderKeyName)
-		if err != nil {
-			return fmt.Errorf("create sender key distribution: %w", err)
-		}
-		skdPlaintext, err := proto.Marshal(&waE2E.Message{
-			SenderKeyDistributionMessage: &waE2E.SenderKeyDistributionMessage{
-				GroupID:                             proto.String(to.String()),
-				AxolotlSenderKeyDistributionMessage: skdMsg.Serialize(),
+	var dsmPlaintext []byte
+	if to.Server != types.GroupServer && to.Server != types.NewsletterServer {
+		dsmPlaintext, err = proto.Marshal(&waE2E.Message{
+			DeviceSentMessage: &waE2E.DeviceSentMessage{
+				DestinationJID: proto.String(to.String()),
+				Message:        msg,
 			},
+			MessageContextInfo: msg.MessageContextInfo,
 		})
 		if err != nil {
-			return fmt.Errorf("marshal skd message: %w", err)
+			return fmt.Errorf("failed to marshal message (for own devices): %w", err)
 		}
-		perDevicePlaintext = skdPlaintext
-
-		groupCipher := groups.NewGroupCipher(groupBuilder, senderKeyName, cli.Store)
-		encrypted, err := groupCipher.Encrypt(ctx, padPinMessage(plaintext))
-		if err != nil {
-			return fmt.Errorf("group encrypt: %w", err)
-		}
-		skMsg := waBinary.Node{
-			Tag:     "enc",
-			Content: encrypted.SignedSerialize(),
-			Attrs:   waBinary.Attrs{"v": "2", "type": "skmsg"},
-		}
-		groupEncNode = &skMsg
-
-		groupInfo, err := cli.GetGroupInfo(ctx, to)
-		if err != nil {
-			return fmt.Errorf("get group info: %w", err)
-		}
-		for _, p := range groupInfo.Participants {
-			participantJIDs = append(participantJIDs, p.JID)
-		}
-	} else {
-		participantJIDs = []types.JID{to, ownJID.ToNonAD()}
 	}
 
-	allDevices, err := cli.GetUserDevices(ctx, participantJIDs)
+	// 2. Get devices for encryption
+	devices, err := cli.GetUserDevicesContext(ctx, []types.JID{to})
 	if err != nil {
-		return fmt.Errorf("get user devices: %w", err)
+		return fmt.Errorf("failed to get devices: %w", err)
 	}
 
-	var participantNodes []waBinary.Node
-	for _, jid := range allDevices {
-		isOwn := jid.User == ownJID.User || (!ownLID.IsEmpty() && jid.User == ownLID.User)
+	msgID := cli.GenerateMessageID()
+	encAttrs := waBinary.Attrs{}
 
-		devicePlaintext := perDevicePlaintext
-		if to.Server != types.GroupServer && isOwn {
-			if jid.ToNonAD() == ownJID.ToNonAD() {
-				continue
-			}
-			devicePlaintext = dsmPlaintext
-		}
-
-		addr := jid.SignalAddress()
-		hasSession, err := cli.Store.ContainsSession(ctx, addr)
-		if err != nil || !hasSession {
-			continue
-		}
-
-		builder := session.NewBuilderFromSignal(cli.Store, addr, pbSer)
-		cipher := session.NewCipher(builder, addr)
-		ciphertext, err := cipher.Encrypt(ctx, padPinMessage(devicePlaintext))
-		if err != nil {
-			continue
-		}
-
-		encType := "msg"
-		if ciphertext.Type() == protocol.PREKEY_TYPE {
-			encType = "pkmsg"
-		}
-		participantNodes = append(participantNodes, waBinary.Node{
-			Tag:   "to",
-			Attrs: waBinary.Attrs{"jid": jid},
-			Content: []waBinary.Node{{
-				Tag:     "enc",
-				Attrs:   waBinary.Attrs{"v": "2", "type": encType},
-				Content: ciphertext.Serialize(),
-			}},
-		})
+	// 3. Call internal encryption via go:linkname
+	participantNodes, includeIdentity, err := encryptMessageForDevices(cli, ctx, devices, msgID, plaintext, dsmPlaintext, encAttrs)
+	if err != nil {
+		return fmt.Errorf("internal encryption failed: %w", err)
 	}
 
-	content := []waBinary.Node{{Tag: "participants", Content: participantNodes}}
-	if groupEncNode != nil {
-		content = append(content, *groupEncNode)
+	// 4. Construct the message content (replicated from whatsmeow/send.go getMessageContent)
+	participantNode := waBinary.Node{
+		Tag:     "participants",
+		Content: participantNodes,
 	}
 
-	_, err = internals.SendNodeAndGetData(ctx, waBinary.Node{
+	content := []waBinary.Node{participantNode}
+	if includeIdentity {
+		content = append(content, makeDeviceIdentityNode(cli))
+	}
+
+	// 5. Construct the final message node
+	node := waBinary.Node{
 		Tag: "message",
 		Attrs: waBinary.Attrs{
-			"id":   id,
-			"type": "text",
+			"id":   msgID,
+			"type": "text", // Pins are sent as "text" type nodes with edit="2"
 			"to":   to,
-			"edit": string(types.EditAttributePinInChat),
+			"edit": "2",
 		},
 		Content: content,
-	})
-	return err
-}
-
-func padPinMessage(plaintext []byte) []byte {
-	pad := random.Bytes(1)
-	pad[0] &= 0xf
-	if pad[0] == 0 {
-		pad[0] = 0xf
 	}
-	plaintext = append(plaintext, bytes.Repeat(pad, int(pad[0]))...)
-	return plaintext
+
+	// 6. Send the node directly via internal socket (access via unsafe reflection)
+	vCli := reflect.ValueOf(cli).Elem()
+	fSocket := vCli.FieldByName("socket")
+	if !fSocket.IsValid() {
+		return fmt.Errorf("could not find unexported socket field in Client")
+	}
+
+	// Bypass unexported field restriction
+	ptrSocket := reflect.NewAt(fSocket.Type(), unsafe.Pointer(fSocket.UnsafeAddr())).Elem()
+
+	payload, err := waBinary.Marshal(node)
+	if err != nil {
+		return fmt.Errorf("failed to marshal node: %w", err)
+	}
+
+	mSendFrame := ptrSocket.MethodByName("SendFrame")
+	if !mSendFrame.IsValid() {
+		return fmt.Errorf("could not find SendFrame method on socket")
+	}
+
+	results := mSendFrame.Call([]reflect.Value{
+		reflect.ValueOf(ctx),
+		reflect.ValueOf(payload),
+	})
+
+	if !results[0].IsNil() {
+		return results[0].Interface().(error)
+	}
+
+	return nil
 }
